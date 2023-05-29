@@ -1,5 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QMenu, QAction, QWidget, QInputDialog, QMessageBox, QVBoxLayout, QPushButton
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,6 +24,19 @@ def remove_punctuation_except_apostrophe(input_string):
     translator = str.maketrans('', '', all_except_apostrophe)
     return input_string.translate(translator)
 
+class ModelRunner(QObject):
+    finished = pyqtSignal(str)
+    def __init__(self, model, word):
+        super(ModelRunner, self).__init__()
+        logger.debug('Initializing ModelRunner')
+        self.model = model
+        self.word = word
+    def run(self):
+        logger.debug('ModelRunner running')
+        self.model.run(self.word)
+        logger.debug('ModelRunner done')
+        self.finished.emit("Replace with LLM result")
+
 class SimpleInputDialog(QWidget):
     def __init__(self):
         super().__init__()
@@ -44,6 +58,8 @@ class CustomTasker(Tasker):
         self.window = SimpleInputDialog()
         # self.window.show()
         self.setQuitOnLastWindowClosed(False)
+        
+        self.model_runner_thread = QThread()
         
     def custom_menu(self):
         self.submenu = QMenu('Models')
@@ -76,12 +92,25 @@ class CustomTasker(Tasker):
                 if option != action:
                     option.setChecked(False)
         
+    def model_runner_callback(self, transcription):
+        print("From model runner thread", transcription)
+        
     def transcriber_callback(self, transcription):
         # transcription_words = transcription.split(" ")
         # word = transcription_words[0]
         word = remove_punctuation_except_apostrophe(transcription)
         logger.debug(word)
-        self.model.run(word)
+        
+        
+        if self.model_runner_thread.isRunning():
+            self.model_runner_thread.quit()
+            self.model_runner_thread.wait()
+        self.model_runner_thread = QThread()
+        self.model_runner = ModelRunner(self.model, word)
+        self.model_runner.moveToThread(self.model_runner_thread)
+        self.model_runner_thread.started.connect(self.model_runner.run)
+        self.model_runner.finished.connect(self.model_runner_callback)
+        self.model_runner_thread.start()
 
 if __name__ == '__main__':
     app = CustomTasker(sys.argv)
