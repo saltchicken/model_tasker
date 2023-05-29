@@ -36,8 +36,18 @@ class DefinitionModel():
     def run(self, word):
         self.screen.write(word)
         # TODO Make this a QThread   
-        result = self.definition_chain({"word": word})
-        say_elvenlabs(result['text'])
+        # result = self.definition_chain({"word": word})
+        
+        # say_elvenlabs(result['text'])
+        
+        # For testing without API
+        print('running LLM...')
+        result = "BOGUS"
+        time.sleep(2)
+        print('Done with LLM')
+        print('Speaking output...')
+        time.sleep(3)
+        print('Done speaking output')
 
 class TypewriteModel():
     def __init__(self):
@@ -67,8 +77,11 @@ class MyCustomHandler(BaseCallbackHandler):
         # else:
         #     sys.exit(1)
         print("Tool starting...")
-        time.sleep(3)
-        print('watied')
+        cont = self.app.window.showDialog()
+        if not cont:
+            # TODO: Should not be closing the whole app. Stop only agentChain
+            sys.exit(1)
+        print("Tool continuing...")
     def on_agent_action(self, action: AgentAction, **kwargs: Any) -> Any:
         print(action, kwargs)
             

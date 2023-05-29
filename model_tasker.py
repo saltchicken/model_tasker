@@ -1,10 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QMenu, QAction
+from PyQt5.QtWidgets import QMenu, QAction, QWidget, QInputDialog, QMessageBox, QVBoxLayout, QPushButton
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from tasker import Tasker
+from tasker import Tasker # type: ignore
 from models import DefinitionModel, TypewriteModel, EchoModel, PythonREPLModel
 
 import logging
@@ -16,10 +16,34 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+import string
+
+def remove_punctuation_except_apostrophe(input_string):
+    all_except_apostrophe = string.punctuation.replace("'", "")
+    translator = str.maketrans('', '', all_except_apostrophe)
+    return input_string.translate(translator)
+
+class SimpleInputDialog(QWidget):
+    def __init__(self):
+        super().__init__()
+
+    def showDialog(self):
+        text, ok = QInputDialog.getText(self, 'Input Dialog', 'Enter your name:')
+
+        if ok:
+            QMessageBox.information(self, "Entered Text", "You entered: " + text)
+            if text == 'y':
+                return True
+            else:
+                return False
+
 class CustomTasker(Tasker):
     def __init__(self, sys_argv):
         super().__init__(sys_argv)
         self.custom_menu()
+        self.window = SimpleInputDialog()
+        # self.window.show()
+        self.setQuitOnLastWindowClosed(False)
         
     def custom_menu(self):
         self.submenu = QMenu('Models')
@@ -55,12 +79,9 @@ class CustomTasker(Tasker):
     def transcriber_callback(self, transcription):
         # transcription_words = transcription.split(" ")
         # word = transcription_words[0]
-        word = transcription
+        word = remove_punctuation_except_apostrophe(transcription)
         logger.debug(word)
         self.model.run(word)
-        # TODO: Fixed by sending signal through begin_recording()
-        if self.worker.quit == False:
-            self.worker.running = True
 
 if __name__ == '__main__':
     app = CustomTasker(sys.argv)
