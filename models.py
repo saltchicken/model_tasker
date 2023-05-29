@@ -18,6 +18,15 @@ from langchain.python import PythonREPL
 
 from elevenlabslib import *
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 def say_elvenlabs(text):
     user = ElevenLabsUser(os.getenv("ELEVENLABS_KEY"))
     voice = user.get_voices_by_name("Rachel")[0]
@@ -41,13 +50,13 @@ class DefinitionModel():
         # say_elvenlabs(result['text'])
         
         # For testing without API
-        print('running LLM...')
+        logger.debug('running LLM...')
         result = "BOGUS"
         time.sleep(2)
-        print('Done with LLM')
-        print('Speaking output...')
+        logger.debug('Done with LLM')
+        logger.debug('Speaking output...')
         time.sleep(3)
-        print('Done speaking output')
+        logger.debug('Done speaking output')
 
 class TypewriteModel():
     def __init__(self):

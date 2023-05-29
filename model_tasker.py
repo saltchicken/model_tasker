@@ -87,19 +87,18 @@ class CustomTasker(Tasker):
         if checked:
             logger.debug(f"Activating {action.text()}")
             self.model = self.model_mapping[action.text()]
-            logger.debug(self.model)
             for option in self.options:
                 if option != action:
                     option.setChecked(False)
         
     def model_runner_callback(self, transcription):
-        print("From model runner thread", transcription)
+        logger.debug("From model runner thread: " + transcription)
         
     def transcriber_callback(self, transcription):
         # transcription_words = transcription.split(" ")
         # word = transcription_words[0]
         word = remove_punctuation_except_apostrophe(transcription)
-        logger.debug(word)
+        logger.debug('Transcription: ' + word)
         
         
         if self.model_runner_thread.isRunning():
