@@ -1,9 +1,20 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-import os, pyautogui
+import os, sys, time, pyautogui
 from langchain import OpenAI, LLMChain
 from langchain.prompts import PromptTemplate
+from langchain.agents.agent_toolkits import create_python_agent
+from langchain.tools.python.tool import PythonREPLTool
+from langchain.callbacks.base import BaseCallbackHandler
+from typing import Any, Dict, List, Optional, Union
+from langchain.schema import (
+    AgentAction,
+    AgentFinish,
+    BaseMessage,
+    LLMResult,
+)
+from langchain.python import PythonREPL
 
 from elevenlabslib import *
 
@@ -40,3 +51,36 @@ class EchoModel():
         self.screen = screen
     def run(self, word):
         self.screen.write(word)
+        
+        
+class MyCustomHandler(BaseCallbackHandler):
+    def __init__(self, app) -> None:
+        super().__init__()
+        self.app = app
+        print(self.app.worker)
+    # def on_llm_new_token(self, token: str, **kwargs) -> None:
+    #     print(f"My custom handler, token: {token}")
+    def on_tool_start(self, serialized: Dict[str, Any], input_str: str, **kwargs: Any) -> Any:
+        # user_input = input("Do you want to continue? (y/N): ")
+        # if user_input.lower() == "y":
+        #     print("Continuing the program...")
+        # else:
+        #     sys.exit(1)
+        print("Tool starting...")
+        time.sleep(3)
+        print('watied')
+    def on_agent_action(self, action: AgentAction, **kwargs: Any) -> Any:
+        print(action, kwargs)
+            
+class PythonREPLModel():
+    def __init__(self, app):
+        self.app = app
+        self.agent_executor = create_python_agent(
+        # llm=OpenAI(temperature=0, max_tokens=1000, streaming=True, callbacks=[MyCustomHandler()]),
+        llm=OpenAI(temperature=0, max_tokens=1000),
+        tool=PythonREPLTool(),
+        verbose=True
+    )
+    def run(self, goal):
+        # agent_executor.run(goal, callbacks=[MyCustomHandler()])
+        self.agent_executor.run("""Understand, write a python script that will print "hello world""", callbacks=[MyCustomHandler(self.app)])

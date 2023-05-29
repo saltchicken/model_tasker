@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from tasker import Tasker
-from models import DefinitionModel, TypewriteModel, EchoModel
+from models import DefinitionModel, TypewriteModel, EchoModel, PythonREPLModel
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ class CustomTasker(Tasker):
             'Echo Model': EchoModel(self.screen),
             'Typewrite Model': TypewriteModel(),
             'Definition Model': DefinitionModel(self.screen),
+            'Python REPL Model': PythonREPLModel(self),
         }
         # for key, model in self.model_mapping.items():
         #     print(f'Option: {key}, Class Name: {model.__class__.__name__}')
