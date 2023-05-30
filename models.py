@@ -62,12 +62,15 @@ class CommandModel():
     def run(self, transcription):
         command = remove_punctuation_except_apostrophe(transcription)
         command = command.lower().split(" ")
-        key = command[0]
-        param1 = command[1]
-        if key in self.command_mapping:
-            logger.debug(f"CommandModel Running key: {key} param1: {param1}")
-            execute = self.command_mapping[key]
-            execute(param1)
+        logger.debug(f"CommandModel received command: {command}")
+        # TODO Implement single word commands and clean up this len check. Need for more robust command handling.
+        if len(command) >= 2:
+            key = command[0]
+            param1 = command[1]
+            if key in self.command_mapping:
+                logger.debug(f"CommandModel Running key: {key} param1: {param1}")
+                execute = self.command_mapping[key]
+                execute(param1)
         else:
             logger.debug("command not found")
         
