@@ -31,7 +31,48 @@ def say_elvenlabs(text):
     user = ElevenLabsUser(os.getenv("ELEVENLABS_KEY"))
     voice = user.get_voices_by_name("Rachel")[0]
     voice.generate_and_play_audio(text, playInBackground=False)
+    
 
+import string
+
+def remove_punctuation_except_apostrophe(input_string):
+    all_except_apostrophe = string.punctuation.replace("'", "")
+    translator = str.maketrans('', '', all_except_apostrophe)
+    return input_string.translate(translator)
+
+def focus(window):
+    logger.debug("TODO: [Focus] " + window)
+    
+def switch_desktop(direction):
+    if direction == 'right':
+        pyautogui.hotkey('win', 'ctrl', 'right')
+    elif direction == 'left':
+        pyautogui.hotkey('win', 'ctrl', 'left')
+    else:
+        logger.debug("direction not found")
+    
+class CommandModel():
+    def __init__(self, screen):
+        self.screen = screen
+        self.command_mapping = {
+            'focus': focus,
+            'switch': switch_desktop,
+        }
+        
+    def run(self, transcription):
+        command = remove_punctuation_except_apostrophe(transcription)
+        command = command.lower().split(" ")
+        key = command[0]
+        param1 = command[1]
+        if key in self.command_mapping:
+            logger.debug(f"CommandModel Running key: {key} param1: {param1}")
+            execute = self.command_mapping[key]
+            execute(param1)
+        else:
+            logger.debug("command not found")
+        
+        
+    
 class DefinitionModel():
     def __init__(self, screen):
         self.screen = screen

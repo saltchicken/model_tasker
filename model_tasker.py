@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from tasker import Tasker # type: ignore
-from models import DefinitionModel, TypewriteModel, EchoModel, PythonREPLModel
+from models import DefinitionModel, TypewriteModel, EchoModel, PythonREPLModel, CommandModel
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,13 +16,6 @@ handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-import string
-
-def remove_punctuation_except_apostrophe(input_string):
-    all_except_apostrophe = string.punctuation.replace("'", "")
-    translator = str.maketrans('', '', all_except_apostrophe)
-    return input_string.translate(translator)
 
 class ModelRunner(QObject):
     finished = pyqtSignal(str)
@@ -69,6 +62,7 @@ class CustomTasker(Tasker):
             'Typewrite Model': TypewriteModel(),
             'Definition Model': DefinitionModel(self.screen),
             'Python REPL Model': PythonREPLModel(self),
+            'Command Model': CommandModel(self.screen),
         }
         # for key, model in self.model_mapping.items():
         #     print(f'Option: {key}, Class Name: {model.__class__.__name__}')
@@ -97,15 +91,14 @@ class CustomTasker(Tasker):
     def transcriber_callback(self, transcription):
         # transcription_words = transcription.split(" ")
         # word = transcription_words[0]
-        word = remove_punctuation_except_apostrophe(transcription)
-        logger.debug('Transcription: ' + word)
+        logger.debug('Transcription: ' + transcription)
         
         
         if self.model_runner_thread.isRunning():
             self.model_runner_thread.quit()
             self.model_runner_thread.wait()
         self.model_runner_thread = QThread()
-        self.model_runner = ModelRunner(self.model, word)
+        self.model_runner = ModelRunner(self.model, transcription)
         self.model_runner.moveToThread(self.model_runner_thread)
         self.model_runner_thread.started.connect(self.model_runner.run)
         self.model_runner.finished.connect(self.model_runner_callback)
