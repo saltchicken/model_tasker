@@ -1,11 +1,12 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-import os, sys, time, pyautogui
+import os, sys, time, string, pyautogui
 from langchain import OpenAI, LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.agents.agent_toolkits import create_python_agent
 from langchain.tools.python.tool import PythonREPLTool
+from langchain.python import PythonREPL
 from langchain.callbacks.base import BaseCallbackHandler
 from typing import Any, Dict, List, Optional, Union
 from langchain.schema import (
@@ -14,8 +15,6 @@ from langchain.schema import (
     BaseMessage,
     LLMResult,
 )
-from langchain.python import PythonREPL
-
 from elevenlabslib import *
 
 import logging
@@ -31,9 +30,6 @@ def say_elvenlabs(text):
     user = ElevenLabsUser(os.getenv("ELEVENLABS_KEY"))
     voice = user.get_voices_by_name("Rachel")[0]
     voice.generate_and_play_audio(text, playInBackground=False)
-    
-
-import string
 
 def remove_punctuation_except_apostrophe(input_string):
     all_except_apostrophe = string.punctuation.replace("'", "")
@@ -74,8 +70,6 @@ class CommandModel():
         else:
             logger.debug("command not found")
         
-        
-    
 class DefinitionModel():
     def __init__(self, screen):
         self.screen = screen
@@ -88,9 +82,7 @@ class DefinitionModel():
         self.definition_chain = LLMChain(llm=self.llm, prompt=self.prompt_template)
     def run(self, word):
         self.screen.write(word)
-        # TODO Make this a QThread   
         # result = self.definition_chain({"word": word})
-        
         # say_elvenlabs(result['text'])
         
         # For testing without API
@@ -115,27 +107,24 @@ class EchoModel():
     def run(self, word):
         self.screen.write(word)
         
-        
 class MyCustomHandler(BaseCallbackHandler):
     def __init__(self, app) -> None:
         super().__init__()
+        # TODO Make this the window and rename it for input interrupt.
         self.app = app
         print(self.app.worker)
     # def on_llm_new_token(self, token: str, **kwargs) -> None:
     #     print(f"My custom handler, token: {token}")
     def on_tool_start(self, serialized: Dict[str, Any], input_str: str, **kwargs: Any) -> Any:
-        # user_input = input("Do you want to continue? (y/N): ")
-        # if user_input.lower() == "y":
-        #     print("Continuing the program...")
-        # else:
-        #     sys.exit(1)
-        print("Tool starting...")
+        logger.debug("Tool starting...")
         cont = self.app.window.showDialog()
         if not cont:
             # TODO: Should not be closing the whole app. Stop only agentChain
             sys.exit(1)
-        print("Tool continuing...")
+        logger.debug("Tool continuing...")
     def on_agent_action(self, action: AgentAction, **kwargs: Any) -> Any:
+        # logger.debug(action)
+        # TODO Determine what kwargs can be used for
         print(action, kwargs)
             
 class PythonREPLModel():
