@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QMenu, QAction, QWidget, QInputDialog, QMessageBox, QVBoxLayout, QPushButton
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, QWaitCondition, QMutex
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -19,36 +19,42 @@ logger.addHandler(handler)
 
 class ModelRunner(QObject):
     finished = pyqtSignal(str)
+    show_dialog = pyqtSignal()
     def __init__(self, model, word):
         super(ModelRunner, self).__init__()
+        self.wait_condition = QWaitCondition()
+        self.mutex = QMutex()
         logger.debug('Initializing ModelRunner')
         self.model = model
         self.word = word
     def run(self):
         logger.debug('ModelRunner running')
-        self.model.run(self.word)
+        self.model.run(self.word, wait=self.wait_condition, mutex=self.mutex, show_dialog=self.show_dialog)
         logger.debug('ModelRunner done')
         self.finished.emit("Replace with LLM result")
+    def input_received(self, cont):
+        self.model.custom_handler.cont = cont
+        self.wait_condition.wakeOne()
 
 class SimpleInputDialog(QWidget):
-    def __init__(self):
+    def __init__(self, model_runner):
         super().__init__()
-
+        self.model_runner = model_runner
     def showDialog(self):
         text, ok = QInputDialog.getText(self, 'Input Dialog', 'Enter your name:')
 
         if ok:
             QMessageBox.information(self, "Entered Text", "You entered: " + text)
             if text == 'y':
-                return True
+                self.model_runner.input_received(True)
             else:
-                return False
+                self.model_runner.input_received(False)
 
 class CustomTasker(Tasker):
     def __init__(self, sys_argv):
         super().__init__(sys_argv)
         self.custom_menu()
-        self.window = SimpleInputDialog()
+        
         # self.window.show()
         self.setQuitOnLastWindowClosed(False)
         
@@ -95,12 +101,15 @@ class CustomTasker(Tasker):
         
         
         if self.model_runner_thread.isRunning():
+            logger.debug('ModelRunner was running')
             self.model_runner_thread.quit()
             self.model_runner_thread.wait()
         self.model_runner_thread = QThread()
         self.model_runner = ModelRunner(self.model, transcription)
         self.model_runner.moveToThread(self.model_runner_thread)
         self.model_runner_thread.started.connect(self.model_runner.run)
+        self.window = SimpleInputDialog(self.model_runner)
+        self.model_runner.show_dialog.connect(self.window.showDialog)
         self.model_runner.finished.connect(self.model_runner_callback)
         self.model_runner_thread.start()
 
