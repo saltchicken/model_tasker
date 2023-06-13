@@ -8,6 +8,12 @@ from langchain.agents.agent_toolkits import create_python_agent
 from langchain.tools.python.tool import PythonREPLTool
 from langchain.python import PythonREPL
 from langchain.callbacks.base import BaseCallbackHandler
+from langchain.vectorstores import FAISS
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.chat_models import ChatOpenAI
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.document_loaders import TextLoader
+from langchain.chains import RetrievalQA
 from typing import Any, Dict, List, Optional, Union
 from langchain.schema import (
     AgentAction,
@@ -154,3 +160,39 @@ class PythonREPLModel():
             self.agent_executor.run("""Understand, write a python script that will print "hello world""", callbacks=[self.custom_handler])
         else:
             logger.debug("No wait or mutex or show_dialog or cont provided")
+            
+class CodeUnderstandingModel():
+    def __init__(self, screen):
+        self.llm = ChatOpenAI()
+        self.embeddings = OpenAIEmbeddings(disallowed_special=())
+        self.screen = screen
+    def run(self, goal, **kwargs):
+        # TODO Figure out why relative path is not working. Use codebase_reader instead
+        root_dir = 'C:\\Users\\saltchicken\\Desktop\\tasker'
+        self.docs = []
+
+        # Go through each folder
+        for dirpath, dirnames, filenames in os.walk(root_dir):
+            
+            # Go through each file
+            for file in filenames:
+                try: 
+                    # Load up the file as a doc and split
+                    loader = TextLoader(os.path.join(dirpath, file), encoding='utf-8')
+                    self.docs.extend(loader.load_and_split())
+                except Exception as e: 
+                    pass
+        
+
+        print (f"You have {len(self.docs)} documents\n")
+        print ("------ Start Document ------")
+        # print (self.docs[0].page_content[:300])
+        for doc in self.docs:
+            print(doc.page_content)
+        
+
+        docsearch = FAISS.from_documents(self.docs, self.embeddings)
+        qa = RetrievalQA.from_chain_type(llm=self.llm, chain_type="stuff", retriever=docsearch.as_retriever())
+        query = "What does tasker.py do?"
+        output = qa.run(query)
+        print (output)

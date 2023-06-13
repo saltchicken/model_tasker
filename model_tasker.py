@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from tasker import Tasker # type: ignore
-from models import DefinitionModel, TypewriteModel, EchoModel, PythonREPLModel, CommandModel
+from models import DefinitionModel, TypewriteModel, EchoModel, PythonREPLModel, CommandModel, CodeUnderstandingModel
 
 import logging
 logger = logging.getLogger(__name__)
@@ -42,7 +42,6 @@ class SimpleInputDialog(QWidget):
         self.model_runner = model_runner
     def showDialog(self):
         text, ok = QInputDialog.getText(self, 'Input Dialog', 'Enter your name:')
-
         if ok:
             QMessageBox.information(self, "Entered Text", "You entered: " + text)
             if text == 'y':
@@ -69,6 +68,7 @@ class CustomTasker(Tasker):
             'Definition Model': DefinitionModel(self.screen),
             'Python REPL Model': PythonREPLModel(self),
             'Command Model': CommandModel(self.screen),
+            'Code Understanding': CodeUnderstandingModel(self.screen)
         }
         # for key, model in self.model_mapping.items():
         #     print(f'Option: {key}, Class Name: {model.__class__.__name__}')
